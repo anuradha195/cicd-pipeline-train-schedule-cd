@@ -5,7 +5,7 @@ pipeline {
             steps {
                 echo " Running build stage..."
                 sh './gradlew build --no-daemon'
-                archiveArtifacts : 'dist/trainSchedule.zip'
+                archiveArtifacts artifacts : 'dist/trainSchedule.zip'
             }
         }
         stage('Pulish to StagingServer'){
