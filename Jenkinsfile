@@ -3,44 +3,38 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                echo " Running build stage..."
+                echo 'Running build automation'
                 sh './gradlew build --no-daemon'
-                archiveArtifacts : 'dist/trainSchedule.zip'
+                archiveArtifacts artifacts: 'dist/trainSchedule.zip'
             }
         }
-        stage('StagingServerDeployment') {
+        stage('DeployToStaging') {
             when {
                 branch 'master'
             }
-            steps{
-                sshPublisher(
-                    publishers: [
-                        sshPublisherDesc(
-                            configName: 'staging', 
-                            sshCredentials: [
-                                encryptedPassphrase: '{AQAAABAAAAAQ6w5zVo4MqRLsM1eRwQ4LqWkad7Jn/2uLrMPMeK8N4hI=}', key: '', keyPath: '', username: 'cloud_user'
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'webserver_login', usernameVariable: 'USERNAME', passwordVariable: 'USERPASS')]) {
+                    sshPublisher(
+                        failOnError: true,
+                        continueOnError: false,
+                        publishers: [
+                            sshPublisherDesc(
+                                configName: 'staging',
+                                sshCredentials: [
+                                    username: "$USERNAME",
+                                    encryptedPassphrase: "$USERPASS"
                                 ], 
                                 transfers: [
                                     sshTransfer(
-                                        
-                                        execCommand: 'sudo /usr/bin/systemctl stop train-schedule && rm -rf /opt/train-schedule/* && unzip /tmp/trainSchedule.zip -d /opt/train-schedule && sudo /usr/bin/systemctl start train-schedule',
-                                        execTimeout: 120000, 
-                                        flatten: false, 
-                                        makeEmptyDirs: false, 
-                                        noDefaultExcludes: false, 
-                                        remoteDirectory: '/tmp', 
-                                        remoteDirectorySDF: false, 
-                                        removePrefix: 'dist/', 
-                                        sourceFiles: 'dist/trainSchedule.zip'
-                                        )
-                                ], 
-                                usePromotionTimestamp: false, 
-                                useWorkspaceInPromotion: false, 
-                                verbose: false)])
-
-
+                                        sourceFiles: 'dist/trainSchedule.zip',
+                                        removePrefix: 'dist/',
+                                        remoteDirectory: '/tmp',
+                                        execCommand: 'sudo /usr/bin/systemctl stop train-schedule && rm -rf /opt/train-schedule/* && unzip /tmp/trainSchedule.zip -d /opt/train-schedule && sudo /usr/bin/systemctl start train-schedule'
+                                    )
+                                ]
+                            )
+                        ]
+                    )
+                }
             }
-
         }
-    }
-}
