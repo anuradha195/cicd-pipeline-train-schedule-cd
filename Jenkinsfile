@@ -9,6 +9,9 @@ pipeline {
             }
         }
         stage('StagingServerDeployment') {
+            when {
+                branch 'master'
+            }
             steps{
                 sshPublisher(
                     publishers: [
